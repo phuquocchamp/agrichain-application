@@ -32,6 +32,8 @@ import { EscrowTester } from "./EscrowTester";
 import { ReputationTester } from "./ReputationTester";
 import { Marketplace } from "./Marketplace";
 import { TransactionHistory } from "./TransactionHistory";
+import { EscrowManagement } from "./EscrowManagement";
+import { ArbitratorDashboard } from "./ArbitratorDashboard";
 
 export function DashboardWagmi(): React.ReactElement {
   const { address, isConnected } = useAccount();
@@ -60,6 +62,7 @@ export function DashboardWagmi(): React.ReactElement {
     | "testing"
     | "supplychain"
     | "escrow"
+    | "escrowManagement"
     | "reputation"
     | "marketplace"
   >("overview");
@@ -131,6 +134,14 @@ export function DashboardWagmi(): React.ReactElement {
         >
           <History className="h-4 w-4" />
           <span>Transaction History</span>
+        </Button>
+        <Button
+          variant={activeTab === "escrowManagement" ? "default" : "outline"}
+          onClick={() => setActiveTab("escrowManagement")}
+          className="flex items-center space-x-2"
+        >
+          <DollarSign className="h-4 w-4" />
+          <span>Escrow Management</span>
         </Button>
         {role === USER_ROLES.OWNER && (
           <Button
@@ -272,6 +283,9 @@ export function DashboardWagmi(): React.ReactElement {
               </CardContent>
             </Card>
           </div>
+
+          {/* Arbitrator Dashboard Widget */}
+          <ArbitratorDashboard />
 
           {/* Quick Actions */}
           <div className="space-y-4">
@@ -525,6 +539,9 @@ export function DashboardWagmi(): React.ReactElement {
 
       {/* Transaction History Tab */}
       {activeTab === "history" && <TransactionHistory />}
+
+      {/* Escrow Management Tab */}
+      {activeTab === "escrowManagement" && <EscrowManagement />}
     </div >
   );
 }

@@ -50,7 +50,7 @@ export function ProductDetailsModal({
     error,
   } = fetchProductDetails(productId);
 
-  const { address, role } = useSupplyChain();
+  const { address, role, shippedItemByFarmer, receivedItemByDistributor } = useSupplyChain();
   const { isArbitrator, findEscrowByProductCode } = useEscrow();
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
   const [escrowId, setEscrowId] = useState<bigint | null>(null);
@@ -409,6 +409,7 @@ export function ProductDetailsModal({
 
           {/* Actions */}
           <div className="flex justify-end space-x-2">
+            {/* Sell Product - State 0 (ProducedByFarmer) */}
             {role === USER_ROLES.FARMER &&
               address === ownerID &&
               Number(itemState) === 0 && (
@@ -417,6 +418,41 @@ export function ProductDetailsModal({
                   Sell Product
                 </Button>
               )}
+
+            {/* Ship Item - State 2 (PurchasedByDistributor) */}
+            {role === USER_ROLES.FARMER &&
+              address === farmerID &&
+              Number(itemState) === 2 && (
+                <Button
+                  onClick={() => {
+                    if (confirm("Ship this item to the distributor?")) {
+                      shippedItemByFarmer(productCode);
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Ship Item
+                </Button>
+              )}
+
+            {/* Receive Item - State 3 (ShippedByFarmer) */}
+            {role === USER_ROLES.DISTRIBUTOR &&
+              address === ownerID &&
+              Number(itemState) === 3 && (
+                <Button
+                  onClick={() => {
+                    if (confirm("Confirm that you have received this item?")) {
+                      receivedItemByDistributor(productCode);
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Receive Item
+                </Button>
+              )}
+
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
