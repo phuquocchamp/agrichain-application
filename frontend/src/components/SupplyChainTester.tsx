@@ -24,6 +24,7 @@ import {
 import { useSupplyChain } from "@/hooks/useSupplyChain";
 import { USER_ROLES, PRODUCT_STATES } from "@/lib/contracts-wagmi";
 import { formatEther, parseEther } from "viem";
+import { CreateProductForm } from "./CreateProductForm";
 
 export function SupplyChainTester() {
   const { address, isConnected } = useAccount();
@@ -59,12 +60,7 @@ export function SupplyChainTester() {
 
   const [testData, setTestData] = useState({
     productCode: "0",
-    productName: "",
-    description: "",
-    ipfsHash: "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
     price: "0.05",
-    shippingDeadline: "",
-    receivingDeadline: "",
     slices: "10",
     userAddress: "",
   });
@@ -232,154 +228,7 @@ export function SupplyChainTester() {
             isVerified && (
               <div className="space-y-4">
                 <h4 className="font-semibold">Create New Product</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="productName">Product Name *</Label>
-                    <Input
-                      id="productName"
-                      value={testData.productName}
-                      onChange={(e) =>
-                        setTestData({
-                          ...testData,
-                          productName: e.target.value,
-                        })
-                      }
-                      placeholder="Organic Tomatoes"
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Required: Name of the product
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="description">Description *</Label>
-                    <Input
-                      id="description"
-                      value={testData.description}
-                      onChange={(e) =>
-                        setTestData({
-                          ...testData,
-                          description: e.target.value,
-                        })
-                      }
-                      placeholder="Grade A Premium Quality Organic Tomatoes"
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Required: Detailed product description
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="ipfsHash">IPFS Hash *</Label>
-                    <Input
-                      id="ipfsHash"
-                      value={testData.ipfsHash}
-                      onChange={(e) =>
-                        setTestData({ ...testData, ipfsHash: e.target.value })
-                      }
-                      placeholder="QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco"
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Required: Metadata hash for product information
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="price">Price (ETH) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.001"
-                      min="0.001"
-                      max="1000"
-                      value={testData.price}
-                      onChange={(e) =>
-                        setTestData({ ...testData, price: e.target.value })
-                      }
-                      placeholder="0.05"
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Range: 0.001 - 1000 ETH
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="shippingDeadline">
-                      Shipping Deadline *
-                    </Label>
-                    <Input
-                      id="shippingDeadline"
-                      type="datetime-local"
-                      value={testData.shippingDeadline}
-                      onChange={(e) =>
-                        setTestData({
-                          ...testData,
-                          shippingDeadline: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      When product must be shipped by
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="receivingDeadline">
-                      Receiving Deadline
-                    </Label>
-                    <Input
-                      id="receivingDeadline"
-                      type="datetime-local"
-                      value={testData.receivingDeadline}
-                      onChange={(e) =>
-                        setTestData({
-                          ...testData,
-                          receivingDeadline: e.target.value,
-                        })
-                      }
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      When product must be received by (optional)
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-end">
-                  <Button
-                    onClick={() => {
-                      if (
-                        !testData.productName ||
-                        !testData.description ||
-                        !testData.ipfsHash ||
-                        !testData.price ||
-                        !testData.shippingDeadline
-                      ) {
-                        alert("Please fill all required fields");
-                        return;
-                      }
-                      const productCode = BigInt(0);
-                      const shippingDeadline = BigInt(
-                        Math.floor(
-                          new Date(testData.shippingDeadline).getTime() / 1000
-                        )
-                      );
-                      produceItemByFarmer(
-                        productCode,
-                        testData.ipfsHash,
-                        testData.price,
-                        shippingDeadline
-                      );
-                    }}
-                    className="w-full"
-                    disabled={isPending}
-                  >
-                    {isPending ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    ) : (
-                      <Package className="h-4 w-4 mr-2" />
-                    )}
-                    {isPending ? "Creating..." : "Create Product"}
-                  </Button>
-                </div>
+                <CreateProductForm />
               </div>
             )}
         </CardContent>

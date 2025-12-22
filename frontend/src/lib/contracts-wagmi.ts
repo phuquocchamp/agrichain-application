@@ -11,7 +11,7 @@ export const supplyChainAbi = parseAbi([
   "function verifiedUsers(address user) external view returns (bool)",
   "function getUserProducts(address user) external view returns (uint256[])",
   "function getTotalProductCount() external view returns (uint256)",
-  "function fetchItem(uint256 productCode) external view returns ((uint256,uint256,address,address,uint256,uint256,uint256,uint256,uint8,address,address,address,uint256,uint256,bool,string))",
+  "function fetchItem(uint256 productCode) external view returns ((uint256 stockUnit, uint256 productCode, address ownerID, address farmerID, uint256 productID, uint256 productDate, uint256 productPrice, uint256 productSliced, uint8 itemState, address distributorID, address retailerID, address consumerID, uint256 shippingDeadline, uint256 receivingDeadline, bool isExpired, string ipfsHash))",
 
   // Write functions
   "function addFarmer(address account) external",

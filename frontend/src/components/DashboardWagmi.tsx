@@ -15,6 +15,7 @@ import {
   RefreshCw,
   BarChart3,
   CheckCircle,
+  ShoppingCart,
 } from "lucide-react";
 import { useSupplyChain } from "@/hooks/useSupplyChain";
 import { USER_ROLES } from "@/lib/contracts-wagmi";
@@ -24,9 +25,11 @@ import { contractAddresses } from "@/lib/wagmi";
 import { UserVerification } from "./UserVerification";
 import { RoleManagement } from "./RoleManagement";
 import { ProductDetailsModal } from "./ProductDetailsModal";
+import { CreateProductForm } from "./CreateProductForm";
 import { SupplyChainTester } from "./SupplyChainTester";
 import { EscrowTester } from "./EscrowTester";
 import { ReputationTester } from "./ReputationTester";
+import { Marketplace } from "./Marketplace";
 
 export function DashboardWagmi(): React.ReactElement {
   const { address, isConnected } = useAccount();
@@ -55,60 +58,11 @@ export function DashboardWagmi(): React.ReactElement {
     | "supplychain"
     | "escrow"
     | "reputation"
+    | "marketplace"
   >("overview");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  const handleCreateProduct = async () => {
-    if (!address) return;
 
-    // Get form data from DOM elements
-    const form = document.querySelector("form") as HTMLFormElement;
-    if (!form) return;
-
-    const formData = new FormData(form);
-    const productName =
-      (form.querySelector('input[type="text"]') as HTMLInputElement)?.value ||
-      "";
-    const description =
-      (form.querySelector("textarea") as HTMLTextAreaElement)?.value || "";
-    const ipfsHash =
-      (form.querySelectorAll('input[type="text"]')[1] as HTMLInputElement)
-        ?.value || "";
-    const price =
-      (form.querySelector('input[type="number"]') as HTMLInputElement)?.value ||
-      "0.025";
-    const shippingDeadline =
-      (form.querySelector('input[type="datetime-local"]') as HTMLInputElement)
-        ?.value || "";
-
-    if (
-      !productName ||
-      !description ||
-      !ipfsHash ||
-      !price ||
-      !shippingDeadline
-    ) {
-      alert("Please fill all required fields");
-      return;
-    }
-
-    try {
-      const productCode = BigInt(0); // Will be auto-generated
-      const shippingDeadlineBigInt = BigInt(
-        Math.floor(new Date(shippingDeadline).getTime() / 1000)
-      );
-
-      await produceItemByFarmer(
-        productCode,
-        ipfsHash,
-        price,
-        shippingDeadlineBigInt
-      );
-      setShowProductForm(false);
-    } catch (error) {
-      console.error("Product creation failed:", error);
-    }
-  };
 
   const handleViewDetails = (productId: bigint) => {
     setSelectedProductId(productId);
@@ -177,6 +131,18 @@ export function DashboardWagmi(): React.ReactElement {
             <span>Admin Tools</span>
           </Button>
         )}
+        {(role === USER_ROLES.DISTRIBUTOR ||
+          role === USER_ROLES.RETAILER ||
+          role === USER_ROLES.CONSUMER) && (
+            <Button
+              variant={activeTab === "marketplace" ? "default" : "outline"}
+              onClick={() => setActiveTab("marketplace")}
+              className="flex items-center space-x-2"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              <span>Marketplace</span>
+            </Button>
+          )}
         <Button
           variant={activeTab === "testing" ? "default" : "outline"}
           onClick={() => setActiveTab("testing")}
@@ -456,114 +422,10 @@ export function DashboardWagmi(): React.ReactElement {
                 <CardTitle>Create New Product</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <form>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">
-                        Product Name *
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue="Organic Heirloom Tomatoes"
-                        className="w-full p-2 border rounded-md"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Name of your agricultural product
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">
-                        Description *
-                      </label>
-                      <textarea
-                        defaultValue="Premium Grade A organic heirloom tomatoes grown using sustainable farming practices. Rich in flavor and nutrients, perfect for fresh consumption or processing."
-                        className="w-full p-2 border rounded-md h-20"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Detailed description of the product
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">IPFS Hash *</label>
-                      <input
-                        type="text"
-                        placeholder="QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco"
-                        className="w-full p-2 border rounded-md"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Metadata hash for product information
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">
-                        Price (ETH) *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.001"
-                        min="0.001"
-                        max="1000"
-                        defaultValue="0.025"
-                        className="w-full p-2 border rounded-md"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Price range: 0.001 - 1000 ETH
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">
-                        Shipping Deadline *
-                      </label>
-                      <input
-                        type="datetime-local"
-                        defaultValue="2024-12-31T18:00"
-                        className="w-full p-2 border rounded-md"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        When product must be shipped by
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">
-                        Receiving Deadline
-                      </label>
-                      <input
-                        type="datetime-local"
-                        defaultValue="2025-01-07T18:00"
-                        className="w-full p-2 border rounded-md"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        When product must be received by (optional)
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      onClick={handleCreateProduct}
-                      disabled={isPending}
-                      type="button"
-                    >
-                      {isPending ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      ) : (
-                        <Plus className="h-4 w-4 mr-2" />
-                      )}
-                      {isPending ? "Creating..." : "Create Product"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowProductForm(false)}
-                      type="button"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
+                <CreateProductForm
+                  onSuccess={() => setShowProductForm(false)}
+                  onCancel={() => setShowProductForm(false)}
+                />
               </CardContent>
             </Card>
           )}
@@ -571,79 +433,84 @@ export function DashboardWagmi(): React.ReactElement {
       )}
 
       {/* Admin Tab */}
-      {activeTab === "admin" && role === USER_ROLES.OWNER && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Admin Tools</h2>
-            <Badge variant="outline" className="flex items-center space-x-1">
-              <Users className="h-3 w-3" />
-              <span>Owner</span>
-            </Badge>
+      {
+        activeTab === "admin" && role === USER_ROLES.OWNER && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold">Admin Tools</h2>
+              <Badge variant="outline" className="flex items-center space-x-1">
+                <Users className="h-3 w-3" />
+                <span>Owner</span>
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <UserVerification />
+              <RoleManagement />
+            </div>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <UserVerification />
-            <RoleManagement />
-          </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Testing Tab */}
-      {activeTab === "testing" && (
-        <div className="space-y-6">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-2">Contract Testing</h2>
-            <p className="text-muted-foreground mb-6">
-              Advanced testing tools for developers and power users
-            </p>
+      {
+        activeTab === "testing" && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold mb-2">Contract Testing</h2>
+              <p className="text-muted-foreground mb-6">
+                Advanced testing tools for developers and power users
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setActiveTab("supplychain")}
+              >
+                <CardContent className="p-6 text-center">
+                  <Package className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                  <h3 className="font-semibold">Supply Chain</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Test product lifecycle functions
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setActiveTab("escrow")}
+              >
+                <CardContent className="p-6 text-center">
+                  <DollarSign className="h-8 w-8 mx-auto mb-2 text-green-600" />
+                  <h3 className="font-semibold">Escrow System</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Test payment and dispute functions
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setActiveTab("reputation")}
+              >
+                <CardContent className="p-6 text-center">
+                  <Users className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+                  <h3 className="font-semibold">Reputation System</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Test review and rating functions
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => setActiveTab("supplychain")}
-            >
-              <CardContent className="p-6 text-center">
-                <Package className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                <h3 className="font-semibold">Supply Chain</h3>
-                <p className="text-sm text-muted-foreground">
-                  Test product lifecycle functions
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => setActiveTab("escrow")}
-            >
-              <CardContent className="p-6 text-center">
-                <DollarSign className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                <h3 className="font-semibold">Escrow System</h3>
-                <p className="text-sm text-muted-foreground">
-                  Test payment and dispute functions
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => setActiveTab("reputation")}
-            >
-              <CardContent className="p-6 text-center">
-                <Users className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-                <h3 className="font-semibold">Reputation System</h3>
-                <p className="text-sm text-muted-foreground">
-                  Test review and rating functions
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Legacy Testing Tabs */}
       {activeTab === "supplychain" && <SupplyChainTester />}
       {activeTab === "escrow" && <EscrowTester />}
       {activeTab === "reputation" && <ReputationTester />}
-    </div>
+      {activeTab === "marketplace" && <Marketplace />}
+    </div >
   );
 }

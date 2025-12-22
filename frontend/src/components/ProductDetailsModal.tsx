@@ -23,7 +23,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatEther } from "viem";
-import { PRODUCT_STATES } from "@/lib/contracts-wagmi";
+import { PRODUCT_STATES, USER_ROLES, type Product } from "@/lib/contracts-wagmi";
+import { useSupplyChain } from "@/hooks/useSupplyChain";
+import { SellProductModal } from "./SellProductModal";
 
 interface ProductDetailsModalProps {
   isOpen: boolean;
@@ -43,6 +45,9 @@ export function ProductDetailsModal({
     isLoading,
     error,
   } = fetchProductDetails(productId);
+
+  const { address, role } = useSupplyChain();
+  const [isSellModalOpen, setIsSellModalOpen] = useState(false);
 
   const formatAddress = (addr: `0x${string}`) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -140,8 +145,8 @@ export function ProductDetailsModal({
     );
   }
 
-  // Parse the product data - it's returned as an array from the contract
-  const [
+  // Parse the product data - it's returned as an object from the contract
+  const {
     stockUnit,
     productCode,
     ownerID,
@@ -158,24 +163,7 @@ export function ProductDetailsModal({
     receivingDeadline,
     isExpired,
     ipfsHash,
-  ] = productData as [
-    bigint, // stockUnit
-    bigint, // productCode
-    `0x${string}`, // ownerID
-    `0x${string}`, // farmerID
-    bigint, // productID
-    bigint, // productDate
-    bigint, // productPrice
-    bigint, // productSliced
-    number, // itemState
-    `0x${string}`, // distributorID
-    `0x${string}`, // retailerID
-    `0x${string}`, // consumerID
-    bigint, // shippingDeadline
-    bigint, // receivingDeadline
-    boolean, // isExpired
-    string // ipfsHash
-  ];
+  } = productData as unknown as Product;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -362,12 +350,31 @@ export function ProductDetailsModal({
 
           {/* Actions */}
           <div className="flex justify-end space-x-2">
+            {role === USER_ROLES.FARMER &&
+              address === ownerID &&
+              Number(itemState) === 0 && (
+                <Button onClick={() => setIsSellModalOpen(true)}>
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Sell Product
+                </Button>
+              )}
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
           </div>
         </div>
       </DialogContent>
+
+      <SellProductModal
+        isOpen={isSellModalOpen}
+        onClose={() => setIsSellModalOpen(false)}
+        productCode={productCode}
+        currentPrice={productPrice}
+        onSuccess={() => {
+          // Ideally refresh data here
+          onClose();
+        }}
+      />
     </Dialog>
   );
 }
