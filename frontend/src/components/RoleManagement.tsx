@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,19 +26,21 @@ import { USER_ROLES } from "@/lib/contracts-wagmi";
 
 export function RoleManagement() {
   const { address } = useAccount();
-  const { role, addFarmer, addDistributor, addRetailer, addConsumer } =
-    useSupplyChain();
+  const {
+    role,
+    addFarmer,
+    addDistributor,
+    addRetailer,
+    addConsumer,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error: txError
+  } = useSupplyChain();
   const [userAddress, setUserAddress] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
-  const handleAddRole = async (roleType: string) => {
+  const handleAddRole = (roleType: string) => {
     if (!userAddress) return;
-
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       switch (roleType) {
@@ -57,16 +59,17 @@ export function RoleManagement() {
         default:
           throw new Error("Invalid role type");
       }
-
-      setSuccess(`User ${userAddress} role addition initiated!`);
-      setUserAddress("");
     } catch (error) {
       console.error("Add role failed:", error);
-      setError(error instanceof Error ? error.message : "Add role failed");
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  // Reset input after successful transaction
+  useEffect(() => {
+    if (isConfirmed && userAddress) {
+      setUserAddress("");
+    }
+  }, [isConfirmed]);
 
   const isOwner = address && role === USER_ROLES.OWNER;
 
@@ -124,58 +127,73 @@ export function RoleManagement() {
         <div className="grid grid-cols-2 gap-2">
           <Button
             onClick={() => handleAddRole("farmer")}
-            disabled={isLoading || !userAddress}
+            disabled={isPending || isConfirming || !userAddress}
             variant="outline"
             className="flex items-center space-x-2"
           >
             <UserPlus className="h-4 w-4" />
-            <span>Add Farmer</span>
+            <span>{isPending || isConfirming ? "Processing..." : "Add Farmer"}</span>
           </Button>
 
           <Button
             onClick={() => handleAddRole("distributor")}
-            disabled={isLoading || !userAddress}
+            disabled={isPending || isConfirming || !userAddress}
             variant="outline"
             className="flex items-center space-x-2"
           >
             <UserPlus className="h-4 w-4" />
-            <span>Add Distributor</span>
+            <span>{isPending || isConfirming ? "Processing..." : "Add Distributor"}</span>
           </Button>
 
           <Button
             onClick={() => handleAddRole("retailer")}
-            disabled={isLoading || !userAddress}
+            disabled={isPending || isConfirming || !userAddress}
             variant="outline"
             className="flex items-center space-x-2"
           >
             <UserPlus className="h-4 w-4" />
-            <span>Add Retailer</span>
+            <span>{isPending || isConfirming ? "Processing..." : "Add Retailer"}</span>
           </Button>
 
           <Button
             onClick={() => handleAddRole("consumer")}
-            disabled={isLoading || !userAddress}
+            disabled={isPending || isConfirming || !userAddress}
             variant="outline"
             className="flex items-center space-x-2"
           >
             <UserPlus className="h-4 w-4" />
-            <span>Add Consumer</span>
+            <span>{isPending || isConfirming ? "Processing..." : "Add Consumer"}</span>
           </Button>
         </div>
 
-        {/* Success Message */}
-        {success && (
+        {/* Transaction Status */}
+        {isPending && (
           <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>{success}</AlertDescription>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>Waiting for wallet confirmation...</AlertDescription>
           </Alert>
         )}
 
-        {/* Error Message */}
-        {error && (
+        {isConfirming && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>Transaction confirming on blockchain...</AlertDescription>
+          </Alert>
+        )}
+
+        {isConfirmed && (
+          <Alert>
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>Role added successfully!</AlertDescription>
+          </Alert>
+        )}
+
+        {txError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {txError.message || "Transaction failed"}
+            </AlertDescription>
           </Alert>
         )}
 

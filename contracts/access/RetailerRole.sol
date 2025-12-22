@@ -15,8 +15,12 @@ contract RetailerRole is Context {
     // Define a struct 'retailers' by inheriting from 'Roles' library, struct Role
     Roles.Role private retailers;
 
-    // In the constructor make the address that deploys this contract the 1st retailer
+    // Owner address who can manage roles
+    address private owner;
+
+    // In the constructor make the address that deploys this contract the 1st retailer and owner
     constructor() public {
+        owner = _msgSender();
         _addRetailer(_msgSender());
     }
 
@@ -32,7 +36,10 @@ contract RetailerRole is Context {
     }
 
     // Define a function 'addRetailer' that adds this role
-    function addRetailer(address account) public onlyRetailer {
+    // Owner or existing retailer can add new retailers
+    function addRetailer(address account) public {
+        require(_msgSender() == owner || isRetailer(_msgSender()), 
+                "Only owner or retailer can add");
         _addRetailer(account);
     }
 
