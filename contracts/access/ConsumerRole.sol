@@ -14,9 +14,12 @@ contract ConsumerRole is Context {
     // Define a struct 'consumers' by inheriting from 'Roles' library, struct Role
     Roles.Role private consumers;
 
-    // In the constructor make the address that deploys this contract the 1st consumer
+    // Owner address who can manage roles
+    address private owner;
+
+    // In the constructor make the address that deploys this contract the 1st consumer and owner
     constructor() public {
-        //_addConstructor(_msgSender());
+        owner = _msgSender();
         _addConsumer(_msgSender());
     }
 
@@ -32,7 +35,10 @@ contract ConsumerRole is Context {
     }
 
     // Define a function 'addConsumer' that adds this role
-    function addConsumer(address account) public onlyConsumer {
+    // Owner or existing consumer can add new consumers
+    function addConsumer(address account) public {
+        require(_msgSender() == owner || isConsumer(_msgSender()), 
+                "Only owner or consumer can add");
         _addConsumer(account);
     }
 

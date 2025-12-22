@@ -15,8 +15,12 @@ contract FarmerRole is Context {
     // Define a struct 'farmers' by inheriting from 'Roles' library, struct Role
     Roles.Role private farmers;
 
-    // In the constructor make the address that deploys this contract the 1st farmer
+    // Owner address who can manage roles
+    address private owner;
+
+    // In the constructor make the address that deploys this contract the 1st farmer and owner
     constructor() public {
+        owner = _msgSender();
         _addFarmer(_msgSender());
     }
 
@@ -32,7 +36,10 @@ contract FarmerRole is Context {
     }
 
     // Define a function 'addFarmer' that adds this role
-    function addFarmer(address account) public onlyFarmer {
+    // Owner or existing farmer can add new farmers
+    function addFarmer(address account) public {
+        require(_msgSender() == owner || isFarmer(_msgSender()), 
+                "Only owner or farmer can add");
         _addFarmer(account);
     }
 

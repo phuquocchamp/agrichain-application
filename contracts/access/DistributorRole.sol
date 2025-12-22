@@ -13,8 +13,12 @@ contract DistributorRole is Context {
     // Define a struct 'distributors' by inheriting from 'Roles' library, struct Role
     Roles.Role private distributors;
 
-    // In the constructor make the address that deploys this contract the 1st distributor
+    // Owner address who can manage roles
+    address private owner;
+
+    // In the constructor make the address that deploys this contract the 1st distributor and owner
     constructor() public {
+        owner = _msgSender();
         _addDistributor(_msgSender());
     }
 
@@ -30,7 +34,10 @@ contract DistributorRole is Context {
     }
 
     // Define a function 'addDistributor' that adds this role
-    function addDistributor(address account) public onlyDistributor {
+    // Owner or existing distributor can add new distributors
+    function addDistributor(address account) public {
+        require(_msgSender() == owner || isDistributor(_msgSender()), 
+                "Only owner or distributor can add");
         _addDistributor(account);
     }
 
