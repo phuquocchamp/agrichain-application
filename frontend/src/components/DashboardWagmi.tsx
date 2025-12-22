@@ -16,6 +16,7 @@ import {
   BarChart3,
   CheckCircle,
   ShoppingCart,
+  History,
 } from "lucide-react";
 import { useSupplyChain } from "@/hooks/useSupplyChain";
 import { USER_ROLES } from "@/lib/contracts-wagmi";
@@ -30,6 +31,7 @@ import { SupplyChainTester } from "./SupplyChainTester";
 import { EscrowTester } from "./EscrowTester";
 import { ReputationTester } from "./ReputationTester";
 import { Marketplace } from "./Marketplace";
+import { TransactionHistory } from "./TransactionHistory";
 
 export function DashboardWagmi(): React.ReactElement {
   const { address, isConnected } = useAccount();
@@ -53,6 +55,7 @@ export function DashboardWagmi(): React.ReactElement {
   const [activeTab, setActiveTab] = useState<
     | "overview"
     | "products"
+    | "history"
     | "admin"
     | "testing"
     | "supplychain"
@@ -120,6 +123,14 @@ export function DashboardWagmi(): React.ReactElement {
         >
           <Package className="h-4 w-4" />
           <span>My Products</span>
+        </Button>
+        <Button
+          variant={activeTab === "history" ? "default" : "outline"}
+          onClick={() => setActiveTab("history")}
+          className="flex items-center space-x-2"
+        >
+          <History className="h-4 w-4" />
+          <span>Transaction History</span>
         </Button>
         {role === USER_ROLES.OWNER && (
           <Button
@@ -511,6 +522,9 @@ export function DashboardWagmi(): React.ReactElement {
       {activeTab === "escrow" && <EscrowTester />}
       {activeTab === "reputation" && <ReputationTester />}
       {activeTab === "marketplace" && <Marketplace />}
+
+      {/* Transaction History Tab */}
+      {activeTab === "history" && <TransactionHistory />}
     </div >
   );
 }

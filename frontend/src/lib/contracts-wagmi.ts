@@ -53,14 +53,30 @@ export const supplyChainAbi = parseAbi([
 
 // Escrow Contract ABI
 export const escrowAbi = parseAbi([
-  "function createEscrow(uint256 productCode, address buyer, address seller, uint256 deadline) external payable",
+  // View functions
+  "function escrows(uint256 escrowId) external view returns (uint256 productCode, address buyer, address seller, uint256 amount, uint256 deadline, uint8 disputeStatus, address arbitrator, bool isReleased, bool isRefunded)",
+  "function disputes(uint256 escrowId) external view returns (uint256 escrowId, address complainant, string reason, uint256 timestamp, uint8 resolution, bool isResolved)",
+  "function arbitrators(address arbitrator) external view returns (bool)",
+  "function getEscrowData(uint256 escrowId) external view returns ((uint256 productCode, address buyer, address seller, uint256 amount, uint256 deadline, uint8 disputeStatus, address arbitrator, bool isReleased, bool isRefunded))",
+  "function getDisputeData(uint256 escrowId) external view returns ((uint256 escrowId, address complainant, string reason, uint256 timestamp, uint8 resolution, bool isResolved))",
+  "function ARBITRATION_FEE() external view returns (uint256)",
+  "function ESCROW_TIMEOUT() external view returns (uint256)",
+  
+  // Write functions
+  "function createEscrow(uint256 productCode, address buyer, address seller, uint256 deadline) external payable returns (uint256)",
   "function releasePayment(uint256 escrowId) external",
   "function refundPayment(uint256 escrowId) external",
   "function openDispute(uint256 escrowId, string reason) external payable",
   "function resolveDispute(uint256 escrowId, uint8 resolution) external",
   "function addArbitrator(address arbitrator) external",
-  "function arbitrators(address arbitrator) external view returns (bool)",
-  "function escrows(uint256 escrowId) external view returns (uint256, address, address, uint256, uint256, uint8, address, bool, bool)",
+  "function removeArbitrator(address arbitrator) external",
+  
+  // Events
+  "event EscrowCreated(uint256 indexed escrowId, uint256 indexed productCode, address buyer, address seller, uint256 amount)",
+  "event PaymentReleased(uint256 indexed escrowId, address seller, uint256 amount)",
+  "event PaymentRefunded(uint256 indexed escrowId, address buyer, uint256 amount)",
+  "event DisputeOpened(uint256 indexed escrowId, address complainant, string reason)",
+  "event DisputeResolved(uint256 indexed escrowId, uint8 resolution)",
 ]);
 
 // Reputation Contract ABI
@@ -107,6 +123,15 @@ export type EscrowData = {
   isRefunded: boolean;
 };
 
+export type Dispute = {
+  escrowId: bigint;
+  complainant: `0x${string}`;
+  reason: string;
+  timestamp: bigint;
+  resolution: number;
+  isResolved: boolean;
+};
+
 export type ReputationData = {
   score: bigint;
   totalReviews: bigint;
@@ -114,6 +139,33 @@ export type ReputationData = {
   failedTransactions: bigint;
   isActive: boolean;
 };
+
+// Escrow enums
+export const DISPUTE_STATUS = {
+  NONE: 0,
+  OPEN: 1,
+  RESOLVED: 2,
+  REJECTED: 3,
+} as const;
+
+export const RESOLUTION = {
+  SELLER: 0,
+  BUYER: 1,
+  SPLIT: 2,
+} as const;
+
+export const DISPUTE_STATUS_LABELS = [
+  "No Dispute",
+  "Dispute Open",
+  "Dispute Resolved",
+  "Dispute Rejected",
+] as const;
+
+export const RESOLUTION_LABELS = [
+  "Favor Seller",
+  "Favor Buyer",
+  "Split 50/50",
+] as const;
 
 // User roles
 export const USER_ROLES = {

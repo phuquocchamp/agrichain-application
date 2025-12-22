@@ -23,9 +23,13 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatEther } from "viem";
-import { PRODUCT_STATES, USER_ROLES, type Product } from "@/lib/contracts-wagmi";
+import { PRODUCT_STATES, USER_ROLES, type Product, type EscrowData } from "@/lib/contracts-wagmi";
 import { useSupplyChain } from "@/hooks/useSupplyChain";
+import { useEscrow } from "@/hooks/useEscrow";
+import { useEscrowData } from "@/hooks/useEscrowData";
 import { SellProductModal } from "./SellProductModal";
+import { EscrowStatusCard } from "./EscrowStatusCard";
+import { EscrowActionsPanel } from "./EscrowActionsPanel";
 
 interface ProductDetailsModalProps {
   isOpen: boolean;
@@ -47,7 +51,38 @@ export function ProductDetailsModal({
   } = fetchProductDetails(productId);
 
   const { address, role } = useSupplyChain();
+  const { isArbitrator, findEscrowByProductCode } = useEscrow();
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
+  const [escrowId, setEscrowId] = useState<bigint | null>(null);
+
+  // Find escrow ID for this product
+  useEffect(() => {
+    const loadEscrow = async () => {
+      if (!productData) return;
+
+      const product = productData as unknown as Product;
+      const state = Number(product.itemState);
+
+      // Check if product has been purchased (states 2, 3, 4-7, 8, 9, 10+)
+      const hasPurchase = state === 2 || state === 3 ||
+        (state >= 4 && state <= 7) ||
+        state === 8 || state === 9 || state >= 10;
+
+      if (!hasPurchase) {
+        setEscrowId(null);
+        return;
+      }
+
+      // Find escrow ID for this product
+      const id = await findEscrowByProductCode(product.productCode);
+      setEscrowId(id);
+    };
+
+    loadEscrow();
+  }, [productData, findEscrowByProductCode]);
+
+  // Fetch escrow data using the new hook
+  const { escrowData, isLoading: isLoadingEscrow } = useEscrowData(escrowId);
 
   const formatAddress = (addr: `0x${string}`) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -347,6 +382,30 @@ export function ProductDetailsModal({
               </div>
             </CardContent>
           </Card>
+
+          {/* Escrow Section - Show for purchased products */}
+          {(Number(itemState) === 2 || // PurchasedByDistributor
+            Number(itemState) === 3 || // ShippedByFarmer
+            Number(itemState) >= 4 && Number(itemState) <= 7 || // Distributor processing
+            Number(itemState) === 8 || // PurchasedByRetailer
+            Number(itemState) === 9 || // ShippedByDistributor
+            Number(itemState) >= 10) && ( // Retailer and Consumer
+              <>
+                <EscrowStatusCard
+                  productCode={productCode}
+                  currentUserAddress={address!}
+                />
+                {escrowId && escrowData && (
+                  <EscrowActionsPanel
+                    productCode={productCode}
+                    escrowId={escrowId}
+                    escrowData={escrowData}
+                    currentUserAddress={address!}
+                    isArbitrator={isArbitrator}
+                  />
+                )}
+              </>
+            )}
 
           {/* Actions */}
           <div className="flex justify-end space-x-2">

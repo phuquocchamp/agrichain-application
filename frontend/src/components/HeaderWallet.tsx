@@ -1,6 +1,7 @@
 "use client";
 
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi";
+import { formatEther } from "viem";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,6 +21,8 @@ import {
   ExternalLink,
   CheckCircle,
   ChevronDown,
+  DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
 import { useSupplyChain } from "@/hooks/useSupplyChain";
@@ -33,8 +36,24 @@ export function HeaderWallet() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch ETH balance
+  const {
+    data: balance,
+    isLoading: isBalanceLoading,
+    refetch: refetchBalance
+  } = useBalance({
+    address: address,
+  });
+
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const formatBalance = (balance: bigint | undefined) => {
+    if (!balance) return "0.0000";
+    const eth = formatEther(balance);
+    const num = parseFloat(eth);
+    return num.toFixed(4);
   };
 
   const copyToClipboard = async (text: string) => {
@@ -152,6 +171,36 @@ export function HeaderWallet() {
           <User className="h-4 w-4" />
           <span className="font-mono text-xs">{address}</span>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+
+        {/* Balance */}
+        <DropdownMenuItem disabled className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <DollarSign className="h-4 w-4" />
+            <span className="text-sm font-medium">Balance</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            {isBalanceLoading ? (
+              <span className="text-xs text-muted-foreground">Loading...</span>
+            ) : (
+              <span className="text-sm font-semibold">
+                {formatBalance(balance?.value)} ETH
+              </span>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                refetchBalance();
+              }}
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          </div>
+        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
 
         {/* Role */}
