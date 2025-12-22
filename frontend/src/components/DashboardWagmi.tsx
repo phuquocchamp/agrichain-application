@@ -379,16 +379,6 @@ export function DashboardWagmi(): React.ReactElement {
               </AlertDescription>
             </Alert>
           )}
-
-          {/* Product Details Modal */}
-          {selectedProductId && (
-            <ProductDetailsModal
-              isOpen={isModalOpen}
-              onClose={handleCloseModal}
-              productId={selectedProductId}
-              fetchProductDetails={fetchProductDetails}
-            />
-          )}
         </>
       )}
 
@@ -447,6 +437,16 @@ export function DashboardWagmi(): React.ReactElement {
                 </Card>
               ))}
             </div>
+          )}
+
+          {/* Product Details Modal - Inside Products Tab */}
+          {selectedProductId && (
+            <ProductDetailsModal
+              isOpen={isModalOpen}
+              onClose={handleCloseModal}
+              productId={selectedProductId}
+              fetchProductDetails={fetchProductDetails}
+            />
           )}
 
           {/* Product Creation Form */}
