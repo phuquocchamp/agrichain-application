@@ -299,37 +299,37 @@ export function ProductDetailsModal({
                 </div>
                 {distributorID !==
                   "0x0000000000000000000000000000000000000000" && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Distributor
-                    </label>
-                    <p className="text-sm font-mono">
-                      {formatAddress(distributorID)}
-                    </p>
-                  </div>
-                )}
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Distributor
+                      </label>
+                      <p className="text-sm font-mono">
+                        {formatAddress(distributorID)}
+                      </p>
+                    </div>
+                  )}
                 {retailerID !==
                   "0x0000000000000000000000000000000000000000" && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Retailer
-                    </label>
-                    <p className="text-sm font-mono">
-                      {formatAddress(retailerID)}
-                    </p>
-                  </div>
-                )}
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Retailer
+                      </label>
+                      <p className="text-sm font-mono">
+                        {formatAddress(retailerID)}
+                      </p>
+                    </div>
+                  )}
                 {consumerID !==
                   "0x0000000000000000000000000000000000000000" && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Consumer
-                    </label>
-                    <p className="text-sm font-mono">
-                      {formatAddress(consumerID)}
-                    </p>
-                  </div>
-                )}
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Consumer
+                      </label>
+                      <p className="text-sm font-mono">
+                        {formatAddress(consumerID)}
+                      </p>
+                    </div>
+                  )}
               </div>
             </CardContent>
           </Card>
