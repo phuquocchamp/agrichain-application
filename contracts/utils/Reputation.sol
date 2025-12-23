@@ -87,7 +87,6 @@ contract Reputation is Ownable {
     ) external validRating(rating) activeUser(reviewee) returns (uint256) {
         require(msg.sender != reviewee, "Cannot review yourself");
         require(reputations[msg.sender].isActive, "Reviewer not active");
-        require(hasInteracted[msg.sender][reviewee], "No interaction history");
 
         _reviewCounter++;
         uint256 reviewId = _reviewCounter;
@@ -101,6 +100,10 @@ contract Reputation is Ownable {
             timestamp: block.timestamp,
             isVerified: false
         });
+
+        // Record interaction between reviewer and reviewee
+        hasInteracted[msg.sender][reviewee] = true;
+        hasInteracted[reviewee][msg.sender] = true;
 
         userReviews[reviewee].push(reviewId);
 
