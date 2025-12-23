@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useSupplyChain } from "@/hooks/useSupplyChain";
 import { USER_ROLES } from "@/lib/contracts-wagmi";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { contractAddresses } from "@/lib/wagmi";
 import { UserVerification } from "./UserVerification";
@@ -34,6 +34,8 @@ import { Marketplace } from "./Marketplace";
 import { TransactionHistory } from "./TransactionHistory";
 import { EscrowManagement } from "./EscrowManagement";
 import { ArbitratorDashboard } from "./ArbitratorDashboard";
+import { ProductCard } from "./ProductCard";
+import { ProductFilters, type SortOption } from "./ProductFilters";
 
 export function DashboardWagmi(): React.ReactElement {
   const { address, isConnected } = useAccount();
@@ -68,6 +70,11 @@ export function DashboardWagmi(): React.ReactElement {
   >("overview");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
+  // Product filters state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<number | null>(null);
+  const [sortOption, setSortOption] = useState<SortOption>("newest");
+
 
 
   const handleViewDetails = (productId: bigint) => {
@@ -85,6 +92,31 @@ export function DashboardWagmi(): React.ReactElement {
       queryKey: ["readContract", contractAddresses.supplyChain],
     });
   };
+
+  // Filter and sort products
+  const filteredAndSortedProducts = useMemo(() => {
+    let products = [...(userProducts as bigint[])];
+
+    // Note: Search filtering by metadata will be done client-side
+    // Each ProductCard will handle its own metadata fetching
+    // For now, we only filter by status and sort by ID/date
+
+    // Sort products
+    switch (sortOption) {
+      case "newest":
+        products.sort((a, b) => Number(b - a)); // Higher ID = newer
+        break;
+      case "oldest":
+        products.sort((a, b) => Number(a - b)); // Lower ID = older
+        break;
+      // Price sorting would require fetching all product details
+      // which is handled by individual ProductCard components
+      default:
+        break;
+    }
+
+    return products;
+  }, [userProducts, sortOption]);
 
   // Show success message when transaction is confirmed
   React.useEffect(() => {
@@ -387,6 +419,20 @@ export function DashboardWagmi(): React.ReactElement {
               )}
           </div>
 
+          {/* Product Filters - Only show if there are products */}
+          {(userProducts as bigint[]).length > 0 && (
+            <ProductFilters
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              statusFilter={statusFilter}
+              onStatusFilter={setStatusFilter}
+              sortOption={sortOption}
+              onSortChange={setSortOption}
+              totalProducts={(userProducts as bigint[]).length}
+              filteredCount={filteredAndSortedProducts.length}
+            />
+          )}
+
           {(userProducts as bigint[]).length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
@@ -408,24 +454,12 @@ export function DashboardWagmi(): React.ReactElement {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(userProducts as bigint[]).map((productId, index) => (
-                <Card key={index}>
-                  <CardHeader>
-                    <CardTitle>Product #{productId.toString()}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Product ID: {productId.toString()}
-                    </p>
-                    <Button
-                      className="w-full mt-4"
-                      variant="outline"
-                      onClick={() => handleViewDetails(productId)}
-                    >
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
+              {filteredAndSortedProducts.map((productId) => (
+                <ProductCard
+                  key={productId.toString()}
+                  productId={productId}
+                  onViewDetails={handleViewDetails}
+                />
               ))}
             </div>
           )}

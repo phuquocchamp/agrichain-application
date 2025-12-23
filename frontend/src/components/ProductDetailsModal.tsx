@@ -26,6 +26,7 @@ import { formatEther } from "viem";
 import { PRODUCT_STATES, USER_ROLES, type Product, type EscrowData } from "@/lib/contracts-wagmi";
 import { useSupplyChain } from "@/hooks/useSupplyChain";
 import { useEscrow } from "@/hooks/useEscrow";
+import { useIPFS } from "@/hooks/useIPFS";
 import { useEscrowData } from "@/hooks/useEscrowData";
 import { SellProductModal } from "./SellProductModal";
 import { ProcessItemDialog } from "./ProcessItemDialog";
@@ -66,10 +67,36 @@ export function ProductDetailsModal({
     shippedItemByRetailer,
   } = useSupplyChain();
   const { isArbitrator, findEscrowByProductCode } = useEscrow();
+  const { getMetadata } = useIPFS();
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
   const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
   const [isSliceSellModalOpen, setIsSliceSellModalOpen] = useState(false);
   const [escrowId, setEscrowId] = useState<bigint | null>(null);
+  const [metadata, setMetadata] = useState<any>(null);
+  const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
+
+  // Fetch metadata from IPFS
+  useEffect(() => {
+    const loadMetadata = async () => {
+      if (!productData) return;
+
+      const product = productData as unknown as Product;
+      if (!product.ipfsHash) return;
+
+      setIsLoadingMetadata(true);
+      try {
+        const data = await getMetadata(product.ipfsHash);
+        setMetadata(data);
+      } catch (error) {
+        console.error("Failed to load metadata:", error);
+        setMetadata(null);
+      } finally {
+        setIsLoadingMetadata(false);
+      }
+    };
+
+    loadMetadata();
+  }, [productData]); // Removed getMetadata from dependencies
 
   // Find escrow ID for this product
   useEffect(() => {
@@ -225,14 +252,33 @@ export function ProductDetailsModal({
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Package className="h-5 w-5" />
-            <span>Product #{productCode.toString()}</span>
+            <span>{metadata?.name || `Product #${productCode.toString()}`}</span>
           </DialogTitle>
           <DialogDescription>
-            Detailed information about this agricultural product
+            {metadata?.description || "Detailed information about this agricultural product"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Product Image */}
+          {metadata?.image && (
+            <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden">
+              <img
+                src={`https://${process.env.NEXT_PUBLIC_GATEWAY_URL}/ipfs/${metadata.image}`}
+                alt={metadata.name || "Product image"}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
+
+          {/* Loading Metadata */}
+          {isLoadingMetadata && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2 text-sm text-muted-foreground">Loading product details...</span>
+            </div>
+          )}
+
           {/* Status and State */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -248,6 +294,32 @@ export function ProductDetailsModal({
               Stock Units: {stockUnit.toString()}
             </div>
           </div>
+
+          {/* Metadata Attributes */}
+          {metadata?.attributes && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Package className="h-4 w-4" />
+                  <span>Product Attributes</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {metadata.attributes.category && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Category</label>
+                    <p className="text-sm">{metadata.attributes.category}</p>
+                  </div>
+                )}
+                {metadata.attributes.origin && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Origin</label>
+                    <p className="text-sm">{metadata.attributes.origin}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Product Information */}
           <Card>
