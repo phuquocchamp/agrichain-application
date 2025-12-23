@@ -237,6 +237,7 @@ contract SupplyChain is
      */
     function verifyUser(address user) external onlyOwner {
         verifiedUsers[user] = true;
+        reputationContract.registerUser(user);
         emit UserVerified(user, true);
     }
 
@@ -392,6 +393,7 @@ contract SupplyChain is
         require(items[_productCode].ownerID == msg.sender, "Not the owner");
 
         items[_productCode].itemState = State.ReceivedByDistributor;
+        reputationContract.recordTransactionSuccess(items[_productCode].farmerID, msg.sender);
         emit ReceivedByDistributor(_productCode);
     }
 
@@ -586,6 +588,7 @@ contract SupplyChain is
         require(items[_productCode].ownerID == msg.sender, "Not the owner");
 
         items[_productCode].itemState = State.ReceivedByRetailer;
+        reputationContract.recordTransactionSuccess(items[_productCode].distributorID, msg.sender);
         emit ReceivedByRetailer(_productCode);
     }
 
