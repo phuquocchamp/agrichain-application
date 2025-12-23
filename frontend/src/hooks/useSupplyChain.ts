@@ -232,6 +232,19 @@ export function useSupplyChain() {
     });
   };
 
+  const sellSlicesToRetailer = (
+    productCode: bigint,
+    slicesToSell: bigint,
+    pricePerSlice: string
+  ) => {
+    writeContract({
+      address: contractAddresses.supplyChain,
+      abi: supplyChainAbi,
+      functionName: "sellSlicesToRetailer",
+      args: [productCode, slicesToSell, parseEther(pricePerSlice)],
+    });
+  };
+
   const purchaseItemByRetailer = (productCode: bigint, value: string) => {
     writeContract({
       address: contractAddresses.supplyChain,
@@ -324,6 +337,7 @@ export function useSupplyChain() {
     processedItemByDistributor,
     packageItemByDistributor,
     sellItemByDistributor,
+    sellSlicesToRetailer,
     purchaseItemByRetailer,
     shippedItemByDistributor,
     receivedItemByRetailer,
