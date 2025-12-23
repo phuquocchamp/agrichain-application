@@ -32,6 +32,12 @@ async function main() {
   const supplyChainAddress = await supplyChain.getAddress();
   console.log("SupplyChain deployed to:", supplyChainAddress);
 
+  // Authorize SupplyChain contract to call Reputation functions
+  console.log("\nAuthorizing SupplyChain contract in Reputation...");
+  const authTx = await reputation.setAuthorizedCaller(supplyChainAddress, true);
+  await authTx.wait();
+  console.log("SupplyChain authorized successfully");
+
   console.log("\n=== Deployment Summary ===");
   console.log("Escrow:", escrowAddress);
   console.log("Reputation:", reputationAddress);
