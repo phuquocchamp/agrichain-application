@@ -1,6 +1,6 @@
+import { type Dispute, type EscrowData } from "@/lib/contracts-wagmi";
+import { escrowAbi, escrowAddress } from "@/lib/generated";
 import { useReadContract } from "wagmi";
-import { contractAddresses } from "@/lib/wagmi";
-import { escrowAbi, type EscrowData, type Dispute } from "@/lib/contracts-wagmi";
 
 /**
  * Custom hook to fetch escrow data by escrow ID
@@ -15,7 +15,7 @@ export function useEscrowData(escrowId: bigint | null) {
     error,
     refetch,
   } = useReadContract({
-    address: contractAddresses.escrow,
+    address: escrowAddress[1337],
     abi: escrowAbi,
     functionName: "getEscrowData",
     args: escrowId !== null ? [escrowId] : undefined,
@@ -44,7 +44,7 @@ export function useDisputeData(escrowId: bigint | null) {
     error,
     refetch,
   } = useReadContract({
-    address: contractAddresses.escrow,
+    address: escrowAddress[1337],
     abi: escrowAbi,
     functionName: "getDisputeData",
     args: escrowId !== null ? [escrowId] : undefined,

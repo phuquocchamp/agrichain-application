@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { usePublicClient, useAccount } from 'wagmi';
 import { useQuery } from '@tanstack/react-query';
 import { parseAbiItem, type Log, type Address } from 'viem';
-import { contractAddresses } from '@/lib/wagmi';
-import { supplyChainAbi, escrowAbi } from '@/lib/contracts-wagmi';
+import { supplyChainAddress, escrowAddress } from '@/lib/generated';
 
 export interface Transaction {
   hash: string;
@@ -46,14 +45,14 @@ export function useTransactionHistory(address: Address | undefined) {
       try {
         // Fetch SupplyChain events
         const supplyChainLogs = await publicClient.getLogs({
-          address: contractAddresses.supplyChain,
+          address: supplyChainAddress[1337],
           fromBlock: 0n,
           toBlock: 'latest',
         });
 
         // Fetch Escrow events
         const escrowLogs = await publicClient.getLogs({
-          address: contractAddresses.escrow,
+          address: escrowAddress[1337],
           fromBlock: 0n,
           toBlock: 'latest',
         });

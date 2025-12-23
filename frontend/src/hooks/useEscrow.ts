@@ -1,20 +1,14 @@
+import { escrowAbi, escrowAddress } from "@/lib/generated";
+import { useQueryClient } from "@tanstack/react-query";
+import React from "react";
+import { parseEther } from "viem";
 import {
   useAccount,
-  useReadContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
   usePublicClient,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
 } from "wagmi";
-import { useQueryClient } from "@tanstack/react-query";
-import { parseEther } from "viem";
-import { contractAddresses } from "@/lib/wagmi";
-import {
-  escrowAbi,
-  type EscrowData,
-  type Dispute,
-  DISPUTE_STATUS,
-} from "@/lib/contracts-wagmi";
-import React from "react";
 
 export function useEscrow() {
   const { address } = useAccount();
@@ -30,27 +24,27 @@ export function useEscrow() {
   React.useEffect(() => {
     if (isConfirmed) {
       queryClient.invalidateQueries({
-        queryKey: ["readContract", contractAddresses.escrow],
+        queryKey: ["readContract", escrowAddress[1337]],
       });
     }
   }, [isConfirmed, queryClient]);
 
   // Read contract constants
   const { data: arbitrationFee } = useReadContract({
-    address: contractAddresses.escrow,
+    address: escrowAddress[1337],
     abi: escrowAbi,
     functionName: "ARBITRATION_FEE",
   });
 
   const { data: escrowTimeout } = useReadContract({
-    address: contractAddresses.escrow,
+    address: escrowAddress[1337],
     abi: escrowAbi,
     functionName: "ESCROW_TIMEOUT",
   });
 
   // Check if current user is arbitrator
   const { data: isArbitrator } = useReadContract({
-    address: contractAddresses.escrow,
+    address: escrowAddress[1337],
     abi: escrowAbi,
     functionName: "arbitrators",
     args: address ? [address] : undefined,
@@ -71,7 +65,7 @@ export function useEscrow() {
     try {
       // Get EscrowCreated events for this product
       const logs = await publicClient.getLogs({
-        address: contractAddresses.escrow,
+        address: escrowAddress[1337],
         event: {
           type: "event",
           name: "EscrowCreated",
@@ -108,7 +102,7 @@ export function useEscrow() {
    */
   const releasePayment = (escrowId: bigint) => {
     writeContract({
-      address: contractAddresses.escrow,
+      address: escrowAddress[1337],
       abi: escrowAbi,
       functionName: "releasePayment",
       args: [escrowId],
@@ -120,7 +114,7 @@ export function useEscrow() {
    */
   const refundPayment = (escrowId: bigint) => {
     writeContract({
-      address: contractAddresses.escrow,
+      address: escrowAddress[1337],
       abi: escrowAbi,
       functionName: "refundPayment",
       args: [escrowId],
@@ -133,7 +127,7 @@ export function useEscrow() {
   const openDispute = (escrowId: bigint, reason: string) => {
     const fee = arbitrationFee || parseEther("0.01");
     writeContract({
-      address: contractAddresses.escrow,
+      address: escrowAddress[1337],
       abi: escrowAbi,
       functionName: "openDispute",
       args: [escrowId, reason],
@@ -147,7 +141,7 @@ export function useEscrow() {
    */
   const resolveDispute = (escrowId: bigint, resolution: number) => {
     writeContract({
-      address: contractAddresses.escrow,
+      address: escrowAddress[1337],
       abi: escrowAbi,
       functionName: "resolveDispute",
       args: [escrowId, resolution],
@@ -159,7 +153,7 @@ export function useEscrow() {
    */
   const addArbitrator = (arbitratorAddress: `0x${string}`) => {
     writeContract({
-      address: contractAddresses.escrow,
+      address: escrowAddress[1337],
       abi: escrowAbi,
       functionName: "addArbitrator",
       args: [arbitratorAddress],
@@ -171,7 +165,7 @@ export function useEscrow() {
    */
   const removeArbitrator = (arbitratorAddress: `0x${string}`) => {
     writeContract({
-      address: contractAddresses.escrow,
+      address: escrowAddress[1337],
       abi: escrowAbi,
       functionName: "removeArbitrator",
       args: [arbitratorAddress],

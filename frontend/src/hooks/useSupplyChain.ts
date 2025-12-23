@@ -1,19 +1,14 @@
+import { type UserRole, USER_ROLES } from "@/lib/contracts-wagmi";
+import { supplyChainAbi, supplyChainAddress } from "@/lib/generated";
+import { useQueryClient } from "@tanstack/react-query";
+import React from "react";
+import { parseEther } from "viem";
 import {
   useAccount,
   useReadContract,
-  useWriteContract,
   useWaitForTransactionReceipt,
+  useWriteContract,
 } from "wagmi";
-import { useQueryClient } from "@tanstack/react-query";
-import { parseEther, formatEther } from "viem";
-import { contractAddresses } from "@/lib/wagmi";
-import {
-  supplyChainAbi,
-  type Product,
-  type UserRole,
-  USER_ROLES,
-} from "@/lib/contracts-wagmi";
-import React from "react";
 
 export function useSupplyChain() {
   const { address } = useAccount();
@@ -28,62 +23,62 @@ export function useSupplyChain() {
   React.useEffect(() => {
     if (isConfirmed) {
       queryClient.invalidateQueries({
-        queryKey: ["readContract", contractAddresses.supplyChain],
+        queryKey: ["readContract", supplyChainAddress[1337]],
       });
     }
   }, [isConfirmed, queryClient]);
 
   // Read contract state
   const { data: owner } = useReadContract({
-    address: contractAddresses.supplyChain,
+    address: supplyChainAddress[1337],
     abi: supplyChainAbi,
     functionName: "owner",
   });
 
   const { data: isFarmer } = useReadContract({
-    address: contractAddresses.supplyChain,
+    address: supplyChainAddress[1337],
     abi: supplyChainAbi,
     functionName: "isFarmer",
     args: address ? [address] : undefined,
   });
 
   const { data: isDistributor } = useReadContract({
-    address: contractAddresses.supplyChain,
+    address: supplyChainAddress[1337],
     abi: supplyChainAbi,
     functionName: "isDistributor",
     args: address ? [address] : undefined,
   });
 
   const { data: isRetailer } = useReadContract({
-    address: contractAddresses.supplyChain,
+    address: supplyChainAddress[1337],
     abi: supplyChainAbi,
     functionName: "isRetailer",
     args: address ? [address] : undefined,
   });
 
   const { data: isConsumer } = useReadContract({
-    address: contractAddresses.supplyChain,
+    address: supplyChainAddress[1337],
     abi: supplyChainAbi,
     functionName: "isConsumer",
     args: address ? [address] : undefined,
   });
 
   const { data: isVerified } = useReadContract({
-    address: contractAddresses.supplyChain,
+    address: supplyChainAddress[1337],
     abi: supplyChainAbi,
     functionName: "verifiedUsers",
     args: address ? [address] : undefined,
   });
 
   const { data: userProducts } = useReadContract({
-    address: contractAddresses.supplyChain,
+    address: supplyChainAddress[1337],
     abi: supplyChainAbi,
     functionName: "getUserProducts",
     args: address ? [address] : undefined,
   });
 
   const { data: totalProducts } = useReadContract({
-    address: contractAddresses.supplyChain,
+    address: supplyChainAddress[1337],
     abi: supplyChainAbi,
     functionName: "getTotalProductCount",
   });
@@ -102,7 +97,7 @@ export function useSupplyChain() {
   // Contract interaction functions
   const addFarmer = (account: `0x${string}`) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "addFarmer",
       args: [account],
@@ -111,7 +106,7 @@ export function useSupplyChain() {
 
   const addDistributor = (account: `0x${string}`) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "addDistributor",
       args: [account],
@@ -120,7 +115,7 @@ export function useSupplyChain() {
 
   const addRetailer = (account: `0x${string}`) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "addRetailer",
       args: [account],
@@ -129,7 +124,7 @@ export function useSupplyChain() {
 
   const addConsumer = (account: `0x${string}`) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "addConsumer",
       args: [account],
@@ -138,7 +133,7 @@ export function useSupplyChain() {
 
   const verifyUser = (user: `0x${string}`) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "verifyUser",
       args: [user],
@@ -147,7 +142,7 @@ export function useSupplyChain() {
 
   const unverifyUser = (user: `0x${string}`) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "unverifyUser",
       args: [user],
@@ -161,7 +156,7 @@ export function useSupplyChain() {
     shippingDeadline: bigint
   ) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "produceItemByFarmer",
       args: [productCode, ipfsHash, parseEther(price), shippingDeadline],
@@ -170,7 +165,7 @@ export function useSupplyChain() {
 
   const sellItemByFarmer = (productCode: bigint, price: string) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "sellItemByFarmer",
       args: [productCode, parseEther(price)],
@@ -179,7 +174,7 @@ export function useSupplyChain() {
 
   const purchaseItemByDistributor = (productCode: bigint, value: string) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "purchaseItemByDistributor",
       args: [productCode],
@@ -189,7 +184,7 @@ export function useSupplyChain() {
 
   const shippedItemByFarmer = (productCode: bigint) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "shippedItemByFarmer",
       args: [productCode],
@@ -198,7 +193,7 @@ export function useSupplyChain() {
 
   const receivedItemByDistributor = (productCode: bigint) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "receivedItemByDistributor",
       args: [productCode],
@@ -207,7 +202,7 @@ export function useSupplyChain() {
 
   const processedItemByDistributor = (productCode: bigint, slices: bigint) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "processedItemByDistributor",
       args: [productCode, slices],
@@ -216,7 +211,7 @@ export function useSupplyChain() {
 
   const packageItemByDistributor = (productCode: bigint) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "packageItemByDistributor",
       args: [productCode],
@@ -225,7 +220,7 @@ export function useSupplyChain() {
 
   const sellItemByDistributor = (productCode: bigint, price: string) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "sellItemByDistributor",
       args: [productCode, parseEther(price)],
@@ -238,7 +233,7 @@ export function useSupplyChain() {
     pricePerSlice: string
   ) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "sellSlicesToRetailer",
       args: [productCode, slicesToSell, parseEther(pricePerSlice)],
@@ -247,7 +242,7 @@ export function useSupplyChain() {
 
   const purchaseItemByRetailer = (productCode: bigint, value: string) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "purchaseItemByRetailer",
       args: [productCode],
@@ -257,7 +252,7 @@ export function useSupplyChain() {
 
   const shippedItemByDistributor = (productCode: bigint) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "shippedItemByDistributor",
       args: [productCode],
@@ -266,7 +261,7 @@ export function useSupplyChain() {
 
   const receivedItemByRetailer = (productCode: bigint) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "receivedItemByRetailer",
       args: [productCode],
@@ -275,7 +270,7 @@ export function useSupplyChain() {
 
   const sellItemByRetailer = (productCode: bigint, price: string) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "sellItemByRetailer",
       args: [productCode, parseEther(price)],
@@ -284,7 +279,7 @@ export function useSupplyChain() {
 
   const purchaseItemByConsumer = (productCode: bigint, value: string) => {
     writeContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "purchaseItemByConsumer",
       args: [productCode],
@@ -295,7 +290,7 @@ export function useSupplyChain() {
   // Function to fetch individual product details
   const fetchProductDetails = (productCode: bigint) => {
     return useReadContract({
-      address: contractAddresses.supplyChain,
+      address: supplyChainAddress[1337],
       abi: supplyChainAbi,
       functionName: "fetchItem",
       args: [productCode],

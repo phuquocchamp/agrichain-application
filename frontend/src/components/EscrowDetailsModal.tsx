@@ -21,10 +21,11 @@ import {
   Package,
 } from "lucide-react";
 import { formatEther } from "viem";
-import { useEscrowData } from "@/hooks/useEscrowData";
+import { useEscrowData, useDisputeData } from "@/hooks/useEscrowData";
 import { useEscrow } from "@/hooks/useEscrow";
 import { DISPUTE_STATUS, DISPUTE_STATUS_LABELS } from "@/lib/contracts-wagmi";
 import { EscrowActionsPanel } from "./EscrowActionsPanel";
+import { Separator } from "@radix-ui/react-separator";
 
 interface EscrowDetailsModalProps {
   escrowId: bigint;
@@ -39,7 +40,10 @@ export function EscrowDetailsModal({
 }: EscrowDetailsModalProps) {
   const { address } = useAccount();
   const { isArbitrator } = useEscrow();
-  const { escrowData, disputeData, isLoading, error, refetch } = useEscrowData(escrowId);
+  const { escrowData, isLoading: isLoadingEscrow, error: escrowError, refetch } = useEscrowData(escrowId);
+  const { disputeData, isLoading: isLoadingDispute } = useDisputeData(escrowId);
+  const isLoading = isLoadingEscrow || isLoadingDispute;
+  const error = escrowError;
 
   if (isLoading) {
     return (

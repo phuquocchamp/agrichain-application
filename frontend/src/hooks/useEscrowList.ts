@@ -1,7 +1,7 @@
 import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { contractAddresses } from "@/lib/wagmi";
-import { escrowAbi, type EscrowData, DISPUTE_STATUS } from "@/lib/contracts-wagmi";
+import { escrowAddress, escrowAbi } from "@/lib/generated";
+import { type EscrowData, DISPUTE_STATUS } from "@/lib/contracts-wagmi";
 import { useEscrowData } from "./useEscrowData";
 
 export type EscrowStatus = "active" | "disputed" | "settled";
@@ -34,7 +34,7 @@ export function useEscrowList() {
 
   // Check if user is arbitrator
   const { data: isArbitrator } = useReadContract({
-    address: contractAddresses.escrow,
+    address: escrowAddress[1337],
     abi: escrowAbi,
     functionName: "arbitrators",
     args: address ? [address] : undefined,
@@ -56,7 +56,7 @@ export function useEscrowList() {
       try {
         // Fetch all EscrowCreated events
         const logs = await publicClient.getLogs({
-          address: contractAddresses.escrow,
+          address: escrowAddress[1337],
           event: {
             type: "event",
             name: "EscrowCreated",
@@ -78,7 +78,7 @@ export function useEscrowList() {
 
           try {
             const escrowData = (await publicClient.readContract({
-              address: contractAddresses.escrow,
+              address: escrowAddress[1337],
               abi: escrowAbi,
               functionName: "getEscrowData",
               args: [escrowId],
