@@ -27,6 +27,7 @@ import { UserVerification } from "./UserVerification";
 import { RoleManagement } from "./RoleManagement";
 import { ProductDetailsModal } from "./ProductDetailsModal";
 import { CreateProductForm } from "./CreateProductForm";
+import { CreateProductModal } from "./CreateProductModal";
 import { SupplyChainTester } from "./SupplyChainTester";
 import { EscrowTester } from "./EscrowTester";
 import { ReputationTester } from "./ReputationTester";
@@ -474,20 +475,12 @@ export function DashboardWagmi(): React.ReactElement {
             />
           )}
 
-          {/* Product Creation Form */}
-          {showProductForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Create New Product</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <CreateProductForm
-                  onSuccess={() => setShowProductForm(false)}
-                  onCancel={() => setShowProductForm(false)}
-                />
-              </CardContent>
-            </Card>
-          )}
+          {/* Product Creation Modal */}
+          <CreateProductModal
+            isOpen={showProductForm}
+            onClose={() => setShowProductForm(false)}
+            onSuccess={() => setShowProductForm(false)}
+          />
         </div>
       )}
 
