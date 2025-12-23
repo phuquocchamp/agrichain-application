@@ -32,6 +32,8 @@ contract Reputation is Ownable {
     mapping(address => ReputationData) public reputations;
     mapping(uint256 => Review) public reviews;
     mapping(address => uint256[]) public userReviews;
+    mapping(address => bool) public authorizedCallers;
+    mapping(address => mapping(address => bool)) public hasInteracted;
     
     uint256 private _reviewCounter;
     
@@ -54,8 +56,19 @@ contract Reputation is Ownable {
         _;
     }
 
-    function registerUser(address user) external onlyOwner {
-        require(!reputations[user].isActive, "User already registered");
+    modifier onlyOwnerOrAuthorized() {
+        require(owner() == msg.sender || authorizedCallers[msg.sender], "Caller is not authorized");
+        _;
+    }
+
+    function setAuthorizedCaller(address _caller, bool _status) external onlyOwner {
+        authorizedCallers[_caller] = _status;
+    }
+
+    function registerUser(address user) external onlyOwnerOrAuthorized {
+        if (reputations[user].isActive) {
+            return;
+        }
         
         reputations[user] = ReputationData({
             score: 500, // Start with neutral score
@@ -74,6 +87,7 @@ contract Reputation is Ownable {
     ) external validRating(rating) activeUser(reviewee) returns (uint256) {
         require(msg.sender != reviewee, "Cannot review yourself");
         require(reputations[msg.sender].isActive, "Reviewer not active");
+        require(hasInteracted[msg.sender][reviewee], "No interaction history");
 
         _reviewCounter++;
         uint256 reviewId = _reviewCounter;
@@ -104,8 +118,12 @@ contract Reputation is Ownable {
         emit ReviewVerified(reviewId, true);
     }
 
-    function recordTransactionSuccess(address user) external onlyOwner {
+    function recordTransactionSuccess(address user, address partner) external onlyOwnerOrAuthorized {
         require(reputations[user].isActive, "User not active");
+        
+        // Record interaction
+        hasInteracted[partner][user] = true;
+        hasInteracted[user][partner] = true;
         
         ReputationData storage rep = reputations[user];
         rep.totalTransactions++;
@@ -120,8 +138,12 @@ contract Reputation is Ownable {
         emit ReputationUpdated(user, rep.score, rep.totalTransactions);
     }
 
-    function recordTransactionFailure(address user) external onlyOwner {
+    function recordTransactionFailure(address user, address partner) external onlyOwnerOrAuthorized {
         require(reputations[user].isActive, "User not active");
+        
+        // Record interaction even if failed
+        hasInteracted[partner][user] = true;
+        hasInteracted[user][partner] = true;
         
         ReputationData storage rep = reputations[user];
         rep.totalTransactions++;
