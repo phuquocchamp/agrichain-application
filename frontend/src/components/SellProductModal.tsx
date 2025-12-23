@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, DollarSign } from "lucide-react";
 import { useSupplyChain } from "@/hooks/useSupplyChain";
+import { USER_ROLES } from "@/lib/contracts-wagmi";
 import { formatEther } from "viem";
 
 interface SellProductModalProps {
@@ -31,14 +32,28 @@ export function SellProductModal({
   currentPrice,
   onSuccess,
 }: SellProductModalProps) {
-  const { sellItemByFarmer, isPending } = useSupplyChain();
+  const {
+    role,
+    sellItemByFarmer,
+    sellItemByDistributor,
+    sellItemByRetailer,
+    isPending
+  } = useSupplyChain();
   const [price, setPrice] = useState(formatEther(currentPrice));
 
   const handleSell = async () => {
     if (!price || parseFloat(price) <= 0) return;
 
     try {
-      await sellItemByFarmer(productCode, price);
+      // Call appropriate sell function based on role
+      if (role === USER_ROLES.FARMER) {
+        await sellItemByFarmer(productCode, price);
+      } else if (role === USER_ROLES.DISTRIBUTOR) {
+        await sellItemByDistributor(productCode, price);
+      } else if (role === USER_ROLES.RETAILER) {
+        await sellItemByRetailer(productCode, price);
+      }
+
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {

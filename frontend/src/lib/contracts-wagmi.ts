@@ -11,7 +11,7 @@ export const supplyChainAbi = parseAbi([
   "function verifiedUsers(address user) external view returns (bool)",
   "function getUserProducts(address user) external view returns (uint256[])",
   "function getTotalProductCount() external view returns (uint256)",
-  "function fetchItem(uint256 productCode) external view returns ((uint256 stockUnit, uint256 productCode, address ownerID, address farmerID, uint256 productID, uint256 productDate, uint256 productPrice, uint256 productSliced, uint8 itemState, address distributorID, address retailerID, address consumerID, uint256 shippingDeadline, uint256 receivingDeadline, bool isExpired, string ipfsHash))",
+  "function fetchItem(uint256 productCode) external view returns ((uint256 stockUnit, uint256 productCode, address ownerID, address farmerID, uint256 productID, uint256 productDate, uint256 productPrice, uint256 productSliced, uint256 slicesRemaining, uint256 slicesSold, uint256 parentProduct, uint8 itemState, address distributorID, address retailerID, address consumerID, uint256 shippingDeadline, uint256 receivingDeadline, bool isExpired, string ipfsHash))",
 
   // Write functions
   "function addFarmer(address account) external",
@@ -28,6 +28,7 @@ export const supplyChainAbi = parseAbi([
   "function processedItemByDistributor(uint256 productCode, uint256 slices) external",
   "function packageItemByDistributor(uint256 productCode) external",
   "function sellItemByDistributor(uint256 productCode, uint256 price) external",
+  "function sellSlicesToRetailer(uint256 productCode, uint256 slicesToSell, uint256 pricePerSlice) external returns (uint256)",
   "function purchaseItemByRetailer(uint256 productCode) external payable",
   "function shippedItemByDistributor(uint256 productCode) external",
   "function receivedItemByRetailer(uint256 productCode) external",
@@ -44,6 +45,7 @@ export const supplyChainAbi = parseAbi([
   "event PackageByDistributor(uint256 indexed productCode)",
   "event ForSaleByDistributor(uint256 indexed productCode, uint256 price)",
   "event PurchasedByRetailer(uint256 indexed productCode, address indexed retailer)",
+  "event SlicesBatchCreated(uint256 indexed parentProduct, uint256 indexed batchProduct, uint256 slicesCount)",
   "event ShippedByDistributor(uint256 indexed productCode)",
   "event ReceivedByRetailer(uint256 indexed productCode)",
   "event ForSaleByRetailer(uint256 indexed productCode, uint256 price)",
@@ -101,6 +103,9 @@ export type Product = {
   productDate: bigint;
   productPrice: bigint;
   productSliced: bigint;
+  slicesRemaining: bigint;
+  slicesSold: bigint;
+  parentProduct: bigint;
   itemState: number;
   distributorID: `0x${string}`;
   retailerID: `0x${string}`;

@@ -53,7 +53,10 @@ contract SupplyChain is
         uint256 productID; // Product ID
         uint256 productDate; // Product Date
         uint256 productPrice; // Product Price
-        uint256 productSliced; // Parent product
+        uint256 productSliced; // Total slices created
+        uint256 slicesRemaining; // Available inventory for selling
+        uint256 slicesSold; // Number of slices already sold
+        uint256 parentProduct; // Parent product reference (0 if this is parent)
         State itemState; // Product State
         address distributorID; // Distributor address
         address retailerID; // Retailer address
@@ -108,6 +111,7 @@ contract SupplyChain is
     event PackagedByDistributor(uint256 indexed productCode);
     event ForSaleByDistributor(uint256 indexed productCode, uint256 price);
     event PurchasedByRetailer(uint256 indexed productCode, address indexed retailer);
+    event SlicesBatchCreated(uint256 indexed parentProduct, uint256 indexed batchProduct, uint256 slicesCount);
     event ShippedByDistributor(uint256 indexed productCode);
     event ReceivedByRetailer(uint256 indexed productCode);
     event ForSaleByRetailer(uint256 indexed productCode, uint256 price);
@@ -275,6 +279,9 @@ contract SupplyChain is
             productDate: block.timestamp,
             productPrice: _price,
             productSliced: 0,
+            slicesRemaining: 0,
+            slicesSold: 0,
+            parentProduct: 0,
             itemState: defaultState,
             distributorID: address(0),
             retailerID: address(0),
@@ -403,6 +410,9 @@ contract SupplyChain is
 
         items[_productCode].itemState = State.ProcessedByDistributor;
         items[_productCode].productSliced = slices;
+        items[_productCode].slicesRemaining = slices;
+        items[_productCode].slicesSold = 0;
+        items[_productCode].parentProduct = 0;
 
         emit ProcessedByDistributor(_productCode, slices);
     }
@@ -442,6 +452,73 @@ contract SupplyChain is
         items[_productCode].productPrice = _price;
 
         emit ForSaleByDistributor(_productCode, _price);
+    }
+
+    /**
+     * @dev Sell specific number of slices to retailer
+     * Creates a new product batch with specified quantity
+     */
+    function sellSlicesToRetailer(
+        uint256 _productCode,
+        uint256 _slicesToSell,
+        uint256 _pricePerSlice
+    )
+        external
+        onlyDistributor
+        validProductCode(_productCode)
+        packagedByDistributor(_productCode)
+        notExpired(_productCode)
+        validPrice(_pricePerSlice)
+        whenNotPaused
+        nonReentrant
+        returns (uint256)
+    {
+        Item storage parent = items[_productCode];
+        require(parent.ownerID == msg.sender, "Not the owner");
+        require(parent.slicesRemaining >= _slicesToSell, "Not enough slices available");
+        require(_slicesToSell > 0, "Must sell at least 1 slice");
+        require(parent.productSliced > 0, "Product not sliced");
+        
+        // Create new product batch
+        _productCounter++;
+        uint256 batchCode = _productCounter;
+        
+        // Calculate total price for this batch
+        uint256 totalPrice = _pricePerSlice * _slicesToSell;
+        
+        items[batchCode] = Item({
+            stockUnit: batchCode,
+            productCode: batchCode,
+            ownerID: msg.sender,
+            farmerID: parent.farmerID,
+            productID: parent.productID,
+            productDate: parent.productDate,
+            productPrice: totalPrice,
+            productSliced: _slicesToSell,
+            slicesRemaining: _slicesToSell,
+            slicesSold: 0,
+            parentProduct: _productCode,
+            itemState: State.ForSaleByDistributor,
+            distributorID: msg.sender,
+            retailerID: address(0),
+            consumerID: address(0),
+            shippingDeadline: parent.shippingDeadline,
+            receivingDeadline: parent.receivingDeadline,
+            isExpired: false,
+            ipfsHash: parent.ipfsHash
+        });
+        
+        // Update parent inventory
+        parent.slicesRemaining -= _slicesToSell;
+        parent.slicesSold += _slicesToSell;
+        
+        // Add to user's products
+        userProducts[msg.sender].push(batchCode);
+        
+        emit ForSaleByDistributor(batchCode, totalPrice);
+        emit SlicesBatchCreated(_productCode, batchCode, _slicesToSell);
+        
+        return batchCode;
     }
 
     /**

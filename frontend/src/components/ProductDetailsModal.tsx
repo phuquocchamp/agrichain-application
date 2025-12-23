@@ -28,6 +28,8 @@ import { useSupplyChain } from "@/hooks/useSupplyChain";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useEscrowData } from "@/hooks/useEscrowData";
 import { SellProductModal } from "./SellProductModal";
+import { ProcessItemDialog } from "./ProcessItemDialog";
+import { SliceSellModal } from "./SliceSellModal";
 import { EscrowStatusCard } from "./EscrowStatusCard";
 import { EscrowActionsPanel } from "./EscrowActionsPanel";
 
@@ -50,9 +52,23 @@ export function ProductDetailsModal({
     error,
   } = fetchProductDetails(productId);
 
-  const { address, role, shippedItemByFarmer, receivedItemByDistributor } = useSupplyChain();
+  const {
+    address,
+    role,
+    shippedItemByFarmer,
+    receivedItemByDistributor,
+    processedItemByDistributor,
+    packageItemByDistributor,
+    sellItemByDistributor,
+    shippedItemByDistributor,
+    receivedItemByRetailer,
+    sellItemByRetailer,
+    shippedItemByRetailer,
+  } = useSupplyChain();
   const { isArbitrator, findEscrowByProductCode } = useEscrow();
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
+  const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
+  const [isSliceSellModalOpen, setIsSliceSellModalOpen] = useState(false);
   const [escrowId, setEscrowId] = useState<bigint | null>(null);
 
   // Find escrow ID for this product
@@ -190,6 +206,9 @@ export function ProductDetailsModal({
     productDate,
     productPrice,
     productSliced,
+    slicesRemaining,
+    slicesSold,
+    parentProduct,
     itemState,
     distributorID,
     retailerID,
@@ -408,7 +427,7 @@ export function ProductDetailsModal({
             )}
 
           {/* Actions */}
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 flex-wrap gap-2">
             {/* Sell Product - State 0 (ProducedByFarmer) */}
             {role === USER_ROLES.FARMER &&
               address === ownerID &&
@@ -453,6 +472,123 @@ export function ProductDetailsModal({
                 </Button>
               )}
 
+            {/* Process Item - State 4 (ReceivedByDistributor) */}
+            {role === USER_ROLES.DISTRIBUTOR &&
+              address === ownerID &&
+              Number(itemState) === 4 && (
+                <Button
+                  onClick={() => setIsProcessDialogOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Process Item
+                </Button>
+              )}
+
+            {/* Package Item - State 5 (ProcessedByDistributor) */}
+            {role === USER_ROLES.DISTRIBUTOR &&
+              address === ownerID &&
+              Number(itemState) === 5 && (
+                <Button
+                  onClick={() => {
+                    if (confirm("Package this processed item?")) {
+                      packageItemByDistributor(productCode);
+                    }
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Package Item
+                </Button>
+              )}
+
+            {/* Sell to Retailer - State 6 (PackageByDistributor) */}
+            {role === USER_ROLES.DISTRIBUTOR &&
+              address === ownerID &&
+              Number(itemState) === 6 && (
+                Number(productSliced) > 0 ? (
+                  <Button
+                    onClick={() => setIsSliceSellModalOpen(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    Sell Slices to Retailer
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setIsSellModalOpen(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    Sell to Retailer
+                  </Button>
+                )
+              )}
+
+            {/* Ship to Retailer - State 8 (PurchasedByRetailer) */}
+            {role === USER_ROLES.DISTRIBUTOR &&
+              address === distributorID &&
+              Number(itemState) === 8 && (
+                <Button
+                  onClick={() => {
+                    if (confirm("Ship this item to the retailer?")) {
+                      shippedItemByDistributor(productCode);
+                    }
+                  }}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Ship to Retailer
+                </Button>
+              )}
+
+            {/* Receive Item - State 9 (ShippedByDistributor) - Retailer */}
+            {role === USER_ROLES.RETAILER &&
+              address === ownerID &&
+              Number(itemState) === 9 && (
+                <Button
+                  onClick={() => {
+                    if (confirm("Confirm that you have received this item?")) {
+                      receivedItemByRetailer(productCode);
+                    }
+                  }}
+                  className="bg-teal-600 hover:bg-teal-700"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Receive Item
+                </Button>
+              )}
+
+            {/* Sell to Consumer - State 10 (ReceivedByRetailer) */}
+            {role === USER_ROLES.RETAILER &&
+              address === ownerID &&
+              Number(itemState) === 10 && (
+                <Button
+                  onClick={() => setIsSellModalOpen(true)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Sell to Consumer
+                </Button>
+              )}
+
+            {/* Ship to Consumer - State 12 (PurchasedByConsumer) */}
+            {role === USER_ROLES.RETAILER &&
+              address === retailerID &&
+              Number(itemState) === 12 && (
+                <Button
+                  onClick={() => {
+                    if (confirm("Ship this item to the consumer?")) {
+                      shippedItemByRetailer(productCode);
+                    }
+                  }}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Ship to Consumer
+                </Button>
+              )}
+
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
@@ -469,6 +605,24 @@ export function ProductDetailsModal({
           // Ideally refresh data here
           onClose();
         }}
+      />
+
+      <ProcessItemDialog
+        isOpen={isProcessDialogOpen}
+        onClose={() => setIsProcessDialogOpen(false)}
+        productCode={productCode}
+        onSuccess={() => {
+          // Refresh data
+          onClose();
+        }}
+      />
+
+      <SliceSellModal
+        isOpen={isSliceSellModalOpen}
+        onClose={() => setIsSliceSellModalOpen(false)}
+        productCode={productCode}
+        slicesRemaining={slicesRemaining || 0n}
+        onSuccess={() => onClose()}
       />
     </Dialog>
   );
