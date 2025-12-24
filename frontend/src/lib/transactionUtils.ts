@@ -10,6 +10,10 @@ import {
   Shield,
   AlertCircle,
   User,
+  UserPlus,
+  UserMinus,
+  Layers,
+  HelpCircle,
 } from 'lucide-react';
 
 export function getTransactionTypeIcon(type: TransactionType) {
@@ -40,6 +44,14 @@ export function getTransactionTypeIcon(type: TransactionType) {
       return Shield;
     case TransactionType.USER_VERIFIED:
       return User;
+    case TransactionType.ROLE_ADDED:
+      return UserPlus;
+    case TransactionType.ROLE_REMOVED:
+      return UserMinus;
+    case TransactionType.SLICES_SOLD:
+      return Layers;
+    case TransactionType.UNKNOWN:
+      return HelpCircle;
     default:
       return Package;
   }
@@ -73,6 +85,14 @@ export function getTransactionTypeColor(type: TransactionType): string {
       return 'text-purple-600 bg-purple-100';
     case TransactionType.USER_VERIFIED:
       return 'text-green-600 bg-green-100';
+    case TransactionType.ROLE_ADDED:
+      return 'text-teal-600 bg-teal-100';
+    case TransactionType.ROLE_REMOVED:
+      return 'text-red-600 bg-red-100';
+    case TransactionType.SLICES_SOLD:
+      return 'text-cyan-600 bg-cyan-100';
+    case TransactionType.UNKNOWN:
+      return 'text-gray-600 bg-gray-100';
     default:
       return 'text-gray-600 bg-gray-100';
   }

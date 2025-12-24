@@ -1,8 +1,7 @@
-import { useMemo } from 'react';
-import { usePublicClient, useAccount } from 'wagmi';
+import { usePublicClient } from 'wagmi';
 import { useQuery } from '@tanstack/react-query';
-import { parseAbiItem, type Log, type Address } from 'viem';
-import { supplyChainAddress, escrowAddress } from '@/lib/generated';
+import { type Log, type Address, decodeEventLog, keccak256, toHex } from 'viem';
+import { supplyChainAddress, escrowAddress, supplyChainAbi, escrowAbi } from '@/lib/generated';
 
 export interface Transaction {
   hash: string;
@@ -13,7 +12,7 @@ export interface Transaction {
   type: TransactionType;
   status: 'success' | 'pending' | 'failed';
   eventName: string;
-  eventData: any;
+  eventData: Record<string, unknown>;
   productCode?: bigint;
   amount?: bigint;
 }
@@ -32,7 +31,43 @@ export enum TransactionType {
   DISPUTE_OPENED = 'Dispute Opened',
   DISPUTE_RESOLVED = 'Dispute Resolved',
   USER_VERIFIED = 'User Verified',
+  ROLE_ADDED = 'Role Added',
+  ROLE_REMOVED = 'Role Removed',
+  SLICES_SOLD = 'Slices Sold',
+  UNKNOWN = 'Unknown',
 }
+
+// Event signature mappings for SupplyChain contract
+const SUPPLY_CHAIN_EVENT_TYPES: Record<string, { type: TransactionType; eventName: string }> = {
+  'ProduceByFarmer': { type: TransactionType.PRODUCE, eventName: 'ProduceByFarmer' },
+  'SellByFarmer': { type: TransactionType.SELL, eventName: 'SellByFarmer' },
+  'PurchaseByDistributor': { type: TransactionType.PURCHASE, eventName: 'PurchaseByDistributor' },
+  'ShippedByFarmer': { type: TransactionType.SHIP, eventName: 'ShippedByFarmer' },
+  'ReceivedByDistributor': { type: TransactionType.RECEIVE, eventName: 'ReceivedByDistributor' },
+  'ProcessedByDistributor': { type: TransactionType.PROCESS, eventName: 'ProcessedByDistributor' },
+  'PackagedByDistributor': { type: TransactionType.PACKAGE, eventName: 'PackagedByDistributor' },
+  'SellByDistributor': { type: TransactionType.SELL, eventName: 'SellByDistributor' },
+  'PurchaseByRetailer': { type: TransactionType.PURCHASE, eventName: 'PurchaseByRetailer' },
+  'ShippedByDistributor': { type: TransactionType.SHIP, eventName: 'ShippedByDistributor' },
+  'ReceivedByRetailer': { type: TransactionType.RECEIVE, eventName: 'ReceivedByRetailer' },
+  'SellByRetailer': { type: TransactionType.SELL, eventName: 'SellByRetailer' },
+  'PurchaseByConsumer': { type: TransactionType.PURCHASE, eventName: 'PurchaseByConsumer' },
+  'UserVerified': { type: TransactionType.USER_VERIFIED, eventName: 'UserVerified' },
+  'SlicesBatchCreated': { type: TransactionType.SLICES_SOLD, eventName: 'SlicesBatchCreated' },
+  'FarmerAdded': { type: TransactionType.ROLE_ADDED, eventName: 'FarmerAdded' },
+  'DistributorAdded': { type: TransactionType.ROLE_ADDED, eventName: 'DistributorAdded' },
+  'RetailerAdded': { type: TransactionType.ROLE_ADDED, eventName: 'RetailerAdded' },
+  'ConsumerAdded': { type: TransactionType.ROLE_ADDED, eventName: 'ConsumerAdded' },
+};
+
+// Event signature mappings for Escrow contract
+const ESCROW_EVENT_TYPES: Record<string, { type: TransactionType; eventName: string }> = {
+  'EscrowCreated': { type: TransactionType.ESCROW_CREATED, eventName: 'EscrowCreated' },
+  'PaymentReleased': { type: TransactionType.ESCROW_RELEASE, eventName: 'PaymentReleased' },
+  'PaymentRefunded': { type: TransactionType.ESCROW_REFUND, eventName: 'PaymentRefunded' },
+  'DisputeOpened': { type: TransactionType.DISPUTE_OPENED, eventName: 'DisputeOpened' },
+  'DisputeResolved': { type: TransactionType.DISPUTE_RESOLVED, eventName: 'DisputeResolved' },
+};
 
 export function useTransactionHistory(address: Address | undefined) {
   const publicClient = usePublicClient();
@@ -57,20 +92,25 @@ export function useTransactionHistory(address: Address | undefined) {
           toBlock: 'latest',
         });
 
-        // Combine all logs
-        const allLogs = [...supplyChainLogs, ...escrowLogs];
-
-        // Parse and filter logs for current user
-        const parsedTransactions = await Promise.all(
-          allLogs
+        // Parse and combine all logs
+        const supplyChainTransactions = await Promise.all(
+          supplyChainLogs
             .filter(log => isUserInvolved(log, address))
-            .map(log => parseLogToTransaction(log, publicClient))
+            .map(log => parseSupplyChainLog(log, publicClient))
         );
 
-        // Sort by timestamp (newest first)
-        return parsedTransactions
-          .filter(tx => tx !== null)
-          .sort((a, b) => b!.timestamp - a!.timestamp) as Transaction[];
+        const escrowTransactions = await Promise.all(
+          escrowLogs
+            .filter(log => isUserInvolved(log, address))
+            .map(log => parseEscrowLog(log, publicClient))
+        );
+
+        // Combine, filter nulls, and sort by timestamp (newest first)
+        const allTransactions = [...supplyChainTransactions, ...escrowTransactions]
+          .filter((tx): tx is Transaction => tx !== null)
+          .sort((a, b) => b.timestamp - a.timestamp);
+
+        return allTransactions;
       } catch (error) {
         console.error('Error fetching transaction history:', error);
         return [];
@@ -78,7 +118,7 @@ export function useTransactionHistory(address: Address | undefined) {
     },
     enabled: !!address && !!publicClient,
     staleTime: 30000, // 30 seconds
-    gcTime: 300000, // 5 minutes (formerly cacheTime)
+    gcTime: 300000, // 5 minutes
   });
 
   return {
@@ -95,49 +135,83 @@ function isUserInvolved(log: Log, userAddress: Address): boolean {
     if (!topics || topics.length === 0) return false;
 
     // Check if user address appears in indexed parameters (topics)
-    const userAddressLower = userAddress.toLowerCase();
+    const userAddressLower = userAddress.toLowerCase().slice(2); // Remove 0x prefix
     
     for (let i = 1; i < topics.length; i++) {
       const topic = topics[i];
-      if (topic && topic.toLowerCase().includes(userAddressLower.slice(2))) {
+      if (topic && topic.toLowerCase().includes(userAddressLower)) {
         return true;
       }
     }
 
     return false;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
 
-async function parseLogToTransaction(
+async function parseSupplyChainLog(
   log: Log,
-  publicClient: any
+  publicClient: ReturnType<typeof usePublicClient>
 ): Promise<Transaction | null> {
   try {
+    if (!publicClient) return null;
+    
     // Get block to extract timestamp
-    const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
+    const block = await publicClient.getBlock({ blockNumber: log.blockNumber! });
     
-    // Get transaction receipt to extract value
-    let txValue = 0n;
+    // Try to decode the event
+    let decodedEvent: { eventName: string; args: Record<string, unknown> } | null = null;
+    let eventInfo = { type: TransactionType.UNKNOWN, eventName: 'Unknown' };
+    
     try {
-      const tx = await publicClient.getTransaction({ hash: log.transactionHash });
-      txValue = tx.value || 0n;
-    } catch (error) {
-      console.error('Error fetching transaction:', error);
+      decodedEvent = decodeEventLog({
+        abi: supplyChainAbi,
+        data: log.data,
+        topics: log.topics,
+      }) as { eventName: string; args: Record<string, unknown> };
+      
+      // Get event info from mapping
+      if (decodedEvent.eventName && SUPPLY_CHAIN_EVENT_TYPES[decodedEvent.eventName]) {
+        eventInfo = SUPPLY_CHAIN_EVENT_TYPES[decodedEvent.eventName];
+      }
+    } catch {
+      // Could not decode event, use fallback
     }
-    
-    // Determine transaction type and parse data based on event signature
-    const eventSignature = log.topics[0];
-    const { type, eventName, eventData } = parseEventData(log, eventSignature);
 
-    // Extract product code from topics if available
+    // Extract product code from decoded event or topics
     let productCode: bigint | undefined;
-    if (log.topics.length > 1 && log.topics[1]) {
+    if (decodedEvent?.args.upc) {
+      productCode = decodedEvent.args.upc as bigint;
+    } else if (decodedEvent?.args.productCode) {
+      productCode = decodedEvent.args.productCode as bigint;
+    } else if (log.topics.length > 1 && log.topics[1]) {
       try {
         productCode = BigInt(log.topics[1]);
-      } catch (error) {
+      } catch {
         // Not a valid product code
+      }
+    }
+
+    // Extract amount from decoded event
+    let amount: bigint | undefined;
+    if (decodedEvent?.args.productPrice) {
+      amount = decodedEvent.args.productPrice as bigint;
+    } else if (decodedEvent?.args.price) {
+      amount = decodedEvent.args.price as bigint;
+    } else if (decodedEvent?.args.amount) {
+      amount = decodedEvent.args.amount as bigint;
+    }
+
+    // Fallback: get transaction value if no amount in event
+    if (!amount) {
+      try {
+        const tx = await publicClient.getTransaction({ hash: log.transactionHash! });
+        if (tx.value && tx.value > 0n) {
+          amount = tx.value;
+        }
+      } catch {
+        // Could not get transaction value
       }
     }
 
@@ -147,38 +221,79 @@ async function parseLogToTransaction(
       timestamp: Number(block.timestamp),
       from: log.address,
       to: log.address,
-      type,
+      type: eventInfo.type,
       status: 'success',
-      eventName,
-      eventData,
-      productCode: productCode || eventData.productCode,
-      amount: txValue > 0n ? txValue : eventData.amount,
+      eventName: eventInfo.eventName,
+      eventData: decodedEvent?.args || {},
+      productCode,
+      amount,
     };
   } catch (error) {
-    console.error('Error parsing log:', error);
+    console.error('Error parsing SupplyChain log:', error);
     return null;
   }
 }
 
-function parseEventData(log: Log, eventSignature: string | undefined) {
-  if (!eventSignature) {
-    return { type: TransactionType.PRODUCE, eventName: 'Unknown', eventData: {} };
-  }
+async function parseEscrowLog(
+  log: Log,
+  publicClient: ReturnType<typeof usePublicClient>
+): Promise<Transaction | null> {
+  try {
+    if (!publicClient) return null;
+    
+    // Get block to extract timestamp
+    const block = await publicClient.getBlock({ blockNumber: log.blockNumber! });
+    
+    // Try to decode the event
+    let decodedEvent: { eventName: string; args: Record<string, unknown> } | null = null;
+    let eventInfo = { type: TransactionType.UNKNOWN, eventName: 'Unknown' };
+    
+    try {
+      decodedEvent = decodeEventLog({
+        abi: escrowAbi,
+        data: log.data,
+        topics: log.topics,
+      }) as { eventName: string; args: Record<string, unknown> };
+      
+      // Get event info from mapping
+      if (decodedEvent.eventName && ESCROW_EVENT_TYPES[decodedEvent.eventName]) {
+        eventInfo = ESCROW_EVENT_TYPES[decodedEvent.eventName];
+      }
+    } catch {
+      // Could not decode event, use fallback
+    }
 
-  // SupplyChain Events
-  if (eventSignature === '0x...') { // ProduceByFarmer signature
+    // Extract product code
+    let productCode: bigint | undefined;
+    if (decodedEvent?.args.productCode) {
+      productCode = decodedEvent.args.productCode as bigint;
+    } else if (decodedEvent?.args.upc) {
+      productCode = decodedEvent.args.upc as bigint;
+    }
+
+    // Extract amount
+    let amount: bigint | undefined;
+    if (decodedEvent?.args.amount) {
+      amount = decodedEvent.args.amount as bigint;
+    } else if (decodedEvent?.args.value) {
+      amount = decodedEvent.args.value as bigint;
+    }
+
     return {
-      type: TransactionType.PRODUCE,
-      eventName: 'ProduceByFarmer',
-      eventData: { productCode: log.topics[1] },
+      hash: log.transactionHash || '0x',
+      blockNumber: log.blockNumber || 0n,
+      timestamp: Number(block.timestamp),
+      from: log.address,
+      to: log.address,
+      type: eventInfo.type,
+      status: 'success',
+      eventName: eventInfo.eventName,
+      eventData: decodedEvent?.args || {},
+      productCode,
+      amount,
     };
+  } catch (error) {
+    console.error('Error parsing Escrow log:', error);
+    return null;
   }
-  
-  // For now, return a default
-  // TODO: Add all event signatures
-  return {
-    type: TransactionType.PRODUCE,
-    eventName: 'Unknown Event',
-    eventData: {},
-  };
 }
